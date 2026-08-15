@@ -83,20 +83,6 @@ footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px}
       <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="salePrice" placeholder="220000"></div></div>
     <div class="field"><label>Mortgage balance outstanding</label>
       <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="mortBal" placeholder="120000"></div></div>
-    <div class="row2">
-      <div class="field"><label>Estate agent fee</label>
-        <div class="inwrap"><input inputmode="decimal" id="agentPct" placeholder="1.2"><span class="suf">%</span></div>
-        <div class="hint">inc. VAT if quoted that way</div></div>
-      <div class="field"><label>Early repayment charge</label>
-        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="erc" placeholder="0"></div>
-        <div class="hint">if still in a fixed deal</div></div>
-    </div>
-    <div class="row2">
-      <div class="field"><label>Solicitor (sale)</label>
-        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="solSale" placeholder="1000"></div></div>
-      <div class="field"><label>EPC</label>
-        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="epc" placeholder="80"></div></div>
-    </div>
     <div id="sellOut"></div>
   </div>
 </div>
@@ -109,16 +95,34 @@ footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px}
     <div class="field"><label>Total cash available</label>
       <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="savings" placeholder="0"></div>
       <div class="hint">covers buying costs first — the rest tops up your deposit</div></div>
+    <div id="buyOut"></div>
+  </div>
+</div>
+
+<div class="card" id="cardCosts">
+  <h2>Costs</h2>
+  <div class="body">
+    <div class="hint" style="margin-bottom:10px">Selling costs come off your equity; buying costs come out of your cash. Mortgage product fee is per-deal below.</div>
     <div class="row2">
-      <div class="field"><label>Solicitor + searches</label>
+      <div class="field"><label>Estate agent fee</label>
+        <div class="inwrap"><input inputmode="decimal" id="agentPct" placeholder="1.2"><span class="suf">%</span></div></div>
+      <div class="field"><label>Early repayment charge</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="erc" placeholder="0"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Solicitor (sale)</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="solSale" placeholder="1000"></div></div>
+      <div class="field"><label>EPC</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="epc" placeholder="80"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Solicitor + searches (buy)</label>
         <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="solBuy" placeholder="1500"></div></div>
       <div class="field"><label>Survey</label>
         <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="survey" placeholder="500"></div></div>
     </div>
     <div class="field"><label>Broker / valuation / other</label>
-      <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="otherBuy" placeholder="0"></div>
-      <div class="hint">mortgage product fee is set per-deal below</div></div>
-    <div id="buyOut"></div>
+      <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="otherBuy" placeholder="0"></div></div>
   </div>
 </div>
 
@@ -136,7 +140,7 @@ footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px}
 </main>
 
 <script>
-const APP_VERSION="1.1.0";
+const APP_VERSION="1.1.1";
 document.getElementById("ver").textContent="v"+APP_VERSION;
 const K="movecalc_";
 const fields=["salePrice","mortBal","agentPct","erc","solSale","epc","newPrice","savings","solBuy","survey","otherBuy"];
@@ -232,9 +236,9 @@ function calc(){
   const sellCosts=agentFee+num("erc")+num("solSale")+num("epc");
   const equity=sale-bal-sellCosts;
 
-  document.getElementById("sellOut").innerHTML=sale?`
-    <div class="kv"><span class="k">Agent fee</span><span class="v neg">−${fmt(agentFee)}</span></div>
-    <div class="kv"><span class="k">Other selling costs</span><span class="v neg">−${fmt(sellCosts-agentFee)}</span></div>
+  const sellItems=[["Agent fee",agentFee],["Early repayment charge",num("erc")],["Solicitor (sale)",num("solSale")],["EPC",num("epc")]];
+  document.getElementById("sellOut").innerHTML=sale?
+    sellItems.filter(x=>x[1]>0).map(x=>`<div class="kv"><span class="k">${x[0]}</span><span class="v neg">−${fmt(x[1])}</span></div>`).join("")+`
     <div class="kv"><span class="k">Mortgage repaid</span><span class="v neg">−${fmt(bal)}</span></div>
     <div class="kv total"><span class="k">Equity released</span><span class="v ${equity<0?'neg':''}">${fmt(equity)}</span></div>`:"";
 
@@ -263,14 +267,12 @@ function calc(){
   const s=res[selected]||res[0];
 
   document.getElementById("buyOut").innerHTML=price?`
-    <div class="kv"><span class="k">LTT (stamp duty)</span><span class="v neg">−${fmt(tax)}</span></div>
-    <div class="kv"><span class="k">Other buying costs</span><span class="v neg">−${fmt(s.costs-tax)}</span></div>
+    ${[["LTT (stamp duty)",tax],["Solicitor + searches",num("solBuy")],["Survey",num("survey")],["Broker / valuation / other",num("otherBuy")],["Product fee (Mortgage "+letter(selected)+")",s.fee]].filter(x=>x[1]>0).map(x=>`<div class="kv"><span class="k">${x[0]}</span><span class="v neg">−${fmt(x[1])}</span></div>`).join("")}
     <div class="kv"><span class="k">Cash after costs</span><span class="v ${s.cashLeft<0?'neg':''}">${fmt(s.cashLeft)}</span></div>
     <div class="kv"><span class="k">+ Equity carried over</span><span class="v">${fmt(Math.max(0,equity))}</span></div>
     <div class="kv"><span class="k">Deposit</span><span class="v ${s.deposit<0?'neg':'pos'}">${fmt(s.deposit)}</span></div>
     <div class="kv total"><span class="k">Mortgage needed</span><span class="v">${fmt(s.loan)}</span></div>
     <div class="kv"><span class="k">Loan-to-value</span><span class="v ${price&&s.loan/price>0.9?'amber':''}">${price?(s.loan/price*100).toFixed(1)+"%":"—"}</span></div>
-    <div class="hint">using Mortgage ${letter(selected)}'s product fee (${fmt(s.fee)})</div>
     ${s.cashLeft<0?'<div class="warnbox">Buying costs exceed your cash by '+fmt(-s.cashLeft)+' — this comes out of your equity/deposit.</div>':''}
     ${s.deposit<0?'<div class="warnbox">Costs exceed your equity + cash — you\u2019d need more money to complete.</div>':''}
     ${price&&s.loan/price>0.95?'<div class="warnbox">LTV over 95% — most lenders won\u2019t offer this.</div>':''}`:"";
