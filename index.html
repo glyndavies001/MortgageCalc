@@ -99,9 +99,9 @@ footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px}
   <div class="body">
     <div class="field"><label>New house price</label>
       <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="newPrice" placeholder="300000"></div></div>
-    <div class="field"><label>Extra savings toward deposit</label>
+    <div class="field"><label>Total cash available</label>
       <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="savings" placeholder="0"></div>
-      <div class="hint">on top of equity carried over</div></div>
+      <div class="hint">covers buying costs first — the rest tops up your deposit</div></div>
     <div class="row2">
       <div class="field"><label>Solicitor + searches</label>
         <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="solBuy" placeholder="1500"></div></div>
@@ -145,7 +145,7 @@ footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px}
 </main>
 
 <script>
-const APP_VERSION="1.0.1";
+const APP_VERSION="1.0.2";
 document.getElementById("ver").textContent="v"+APP_VERSION;
 const K="movecalc_";
 const fields=["salePrice","mortBal","agentPct","erc","solSale","epc","newPrice","savings","solBuy","survey","prodFee","otherBuy","rate","term"];
@@ -198,18 +198,23 @@ function calc(){
 
   const price=num("newPrice");
   const tax=ltt(price);
+  const cash=num("savings");
   const buyCosts=tax+num("solBuy")+num("survey")+num("prodFee")+num("otherBuy");
-  const deposit=Math.max(0,equity)+num("savings")-buyCosts;
+  const cashLeft=cash-buyCosts;
+  const deposit=Math.max(0,equity)+cashLeft;
   const loan=Math.max(0,price-Math.max(0,deposit));
   const lvt=price?loan/price*100:0;
 
   document.getElementById("buyOut").innerHTML=price?`
     <div class="kv"><span class="k">LTT (stamp duty)</span><span class="v neg">−${fmt(tax)}</span></div>
     <div class="kv"><span class="k">Other buying costs</span><span class="v neg">−${fmt(buyCosts-tax)}</span></div>
-    <div class="kv"><span class="k">Deposit after all costs</span><span class="v ${deposit<0?'neg':'pos'}">${fmt(deposit)}</span></div>
+    <div class="kv"><span class="k">Cash after costs</span><span class="v ${cashLeft<0?'neg':''}">${fmt(cashLeft)}</span></div>
+    <div class="kv"><span class="k">+ Equity carried over</span><span class="v">${fmt(Math.max(0,equity))}</span></div>
+    <div class="kv"><span class="k">Deposit</span><span class="v ${deposit<0?'neg':'pos'}">${fmt(deposit)}</span></div>
     <div class="kv total"><span class="k">Mortgage needed</span><span class="v">${fmt(loan)}</span></div>
     <div class="kv"><span class="k">Loan-to-value</span><span class="v ${lvt>90?'amber':''}">${price?lvt.toFixed(1)+"%":"—"}</span></div>
-    ${deposit<0?'<div class="warnbox">Your costs exceed your equity + savings — you\u2019d need more cash to complete.</div>':''}
+    ${cashLeft<0?'<div class="warnbox">Buying costs exceed your cash by '+fmt(-cashLeft)+' — this comes out of your equity/deposit.</div>':''}
+    ${deposit<0?'<div class="warnbox">Costs exceed your equity + cash — you\u2019d need more money to complete.</div>':''}
     ${lvt>95&&price?'<div class="warnbox">LTV over 95% — most lenders won\u2019t offer this.</div>':''}`:"";
 
   const m=pmt(loan,num("rate"),num("term"));
