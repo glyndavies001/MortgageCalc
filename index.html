@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>MoveCalc</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg:#0b1220; --card:#121c2e; --card2:#0e1727; --line:#1e2c45;
+  --text:#e6edf7; --dim:#8fa3bf; --cyan:#22d3ee; --cyan-dim:#0e7490;
+  --good:#34d399; --bad:#f87171; --warn:#fbbf24;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45;padding-bottom:40px}
+header{padding:18px 16px 8px;display:flex;align-items:baseline;justify-content:space-between}
+header h1{font-size:20px;letter-spacing:.4px}
+header h1 span{color:var(--cyan)}
+header small{color:var(--dim);font-size:11px}
+main{padding:0 12px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin:12px 0;overflow:hidden}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:1.2px;color:var(--cyan);padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.card h2::after{content:"▾";color:var(--dim);transition:transform .2s}
+.card.closed h2::after{transform:rotate(-90deg)}
+.card .body{padding:0 16px 16px}
+.card.closed .body{display:none}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12.5px;color:var(--dim);margin-bottom:4px}
+.inwrap{display:flex;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.inwrap:focus-within{border-color:var(--cyan-dim)}
+.inwrap .pre,.inwrap .suf{padding:0 10px;color:var(--dim);font-size:14px;flex:none}
+.inwrap input{flex:1;min-width:0;background:none;border:none;color:var(--text);font-size:17px;padding:11px 8px;outline:none;font-variant-numeric:tabular-nums}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:11.5px;color:var(--dim);margin-top:3px}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
+.kv:last-child{border-bottom:none}
+.kv .k{color:var(--dim)}
+.kv .v{font-variant-numeric:tabular-nums;font-weight:600}
+.kv.total .k,.kv.total .v{color:var(--cyan);font-size:15.5px}
+.neg{color:var(--bad)} .pos{color:var(--good)} .amber{color:var(--warn)}
+.bigstat{background:linear-gradient(135deg,#0e2233,#101b30);border:1px solid var(--cyan-dim);border-radius:var(--radius);padding:16px;margin:12px 0;text-align:center}
+.bigstat .lbl{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
+.bigstat .num{font-size:34px;font-weight:700;color:var(--cyan);font-variant-numeric:tabular-nums;margin:2px 0}
+.bigstat .sub{font-size:12.5px;color:var(--dim)}
+.scen{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--card2)}
+.scen .scenhead{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-bottom:6px}
+.scenres{display:flex;justify-content:space-between;font-size:13.5px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.scenres b{color:var(--cyan);font-variant-numeric:tabular-nums}
+.best{border-color:var(--good)}
+.best .scenhead::after{content:"CHEAPEST";color:var(--good);font-size:10px;letter-spacing:1px}
+button.reset{display:block;margin:20px auto;background:none;border:1px solid var(--line);color:var(--dim);padding:9px 18px;border-radius:10px;font-size:13px}
+.warnbox{background:#2a1f10;border:1px solid #6b4e16;color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+footer{text-align:center;color:var(--dim);font-size:11px;margin-top:24px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header><h1>Move<span>Calc</span></h1><small id="ver"></small></header>
+<main>
+
+<div class="bigstat">
+  <div class="lbl">Monthly repayment</div>
+  <div class="num" id="bigMonthly">—</div>
+  <div class="sub" id="bigSub"></div>
+</div>
+
+<div class="card" id="cardSell">
+  <h2>Selling your house</h2>
+  <div class="body">
+    <div class="field"><label>Estimated sale price</label>
+      <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="salePrice" placeholder="220000"></div></div>
+    <div class="field"><label>Mortgage balance outstanding</label>
+      <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="mortBal" placeholder="120000"></div></div>
+    <div class="row2">
+      <div class="field"><label>Estate agent fee</label>
+        <div class="inwrap"><input inputmode="decimal" id="agentPct" placeholder="1.2"><span class="suf">%</span></div>
+        <div class="hint">inc. VAT if quoted that way</div></div>
+      <div class="field"><label>Early repayment charge</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="erc" placeholder="0"></div>
+        <div class="hint">if still in a fixed deal</div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Solicitor (sale)</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="solSale" placeholder="1000"></div></div>
+      <div class="field"><label>EPC</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="epc" placeholder="80"></div></div>
+    </div>
+    <div id="sellOut"></div>
+  </div>
+</div>
+
+<div class="card" id="cardBuy">
+  <h2>Buying the new house</h2>
+  <div class="body">
+    <div class="field"><label>New house price</label>
+      <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="newPrice" placeholder="300000"></div></div>
+    <div class="field"><label>Extra savings toward deposit</label>
+      <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="savings" placeholder="0"></div>
+      <div class="hint">on top of equity carried over</div></div>
+    <div class="row2">
+      <div class="field"><label>Solicitor + searches</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="solBuy" placeholder="1500"></div></div>
+      <div class="field"><label>Survey</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="survey" placeholder="500"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Mortgage product fee</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="prodFee" placeholder="999"></div>
+        <div class="hint">paid upfront (not added to loan)</div></div>
+      <div class="field"><label>Broker / valuation / other</label>
+        <div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="otherBuy" placeholder="0"></div></div>
+    </div>
+    <div id="buyOut"></div>
+  </div>
+</div>
+
+<div class="card" id="cardMort">
+  <h2>New mortgage</h2>
+  <div class="body">
+    <div class="row2">
+      <div class="field"><label>Interest rate</label>
+        <div class="inwrap"><input inputmode="decimal" id="rate" placeholder="4.5"><span class="suf">%</span></div></div>
+      <div class="field"><label>Term</label>
+        <div class="inwrap"><input inputmode="numeric" id="term" placeholder="25"><span class="suf">yrs</span></div></div>
+    </div>
+    <div id="mortOut"></div>
+  </div>
+</div>
+
+<div class="card closed" id="cardComp">
+  <h2>Rate comparison</h2>
+  <div class="body">
+    <div class="hint" style="margin-bottom:10px">Compare deals over their fixed period — same loan &amp; term as above.</div>
+    <div id="scens"></div>
+  </div>
+</div>
+
+<button class="reset" id="resetBtn">Clear all inputs</button>
+<footer>Estimates only — LTT main-residence rates 2026/27.<br>Confirm figures with your lender &amp; conveyancer.</footer>
+</main>
+
+<script>
+const APP_VERSION="1.0.0";
+document.getElementById("ver").textContent="v"+APP_VERSION;
+const K="movecalc_";
+const fields=["salePrice","mortBal","agentPct","erc","solSale","epc","newPrice","savings","solBuy","survey","prodFee","otherBuy","rate","term"];
+const scenFields=[];
+for(let i=1;i<=3;i++){scenFields.push("s"+i+"rate","s"+i+"fee","s"+i+"yrs");}
+
+const fmt=n=>isFinite(n)?"£"+Math.round(n).toLocaleString("en-GB"):"—";
+const num=id=>{const v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:0;};
+
+// LTT — Wales main residential, 2026/27
+function ltt(p){
+  const bands=[[225000,0],[400000,.06],[750000,.075],[1500000,.10],[Infinity,.12]];
+  let t=0,prev=0;
+  for(const[cap,r]of bands){ if(p>prev)t+=(Math.min(p,cap)-prev)*r; prev=cap; if(p<=cap)break; }
+  return t;
+}
+function pmt(loan,annualPct,years){
+  if(loan<=0||years<=0)return 0;
+  const r=annualPct/100/12,n=years*12;
+  if(r===0)return loan/n;
+  return loan*r/(1-Math.pow(1+r,-n));
+}
+
+// build comparison scenario markup
+const scensEl=document.getElementById("scens");
+for(let i=1;i<=3;i++){
+  scensEl.insertAdjacentHTML("beforeend",`
+  <div class="scen" id="scen${i}">
+    <div class="scenhead"><span>Deal ${i}</span></div>
+    <div class="row2">
+      <div class="field"><label>Rate</label><div class="inwrap"><input inputmode="decimal" id="s${i}rate"><span class="suf">%</span></div></div>
+      <div class="field"><label>Product fee</label><div class="inwrap"><span class="pre">£</span><input inputmode="numeric" id="s${i}fee"></div></div>
+    </div>
+    <div class="field"><label>Fixed period</label><div class="inwrap"><input inputmode="numeric" id="s${i}yrs" placeholder="5"><span class="suf">yrs</span></div></div>
+    <div class="scenres" id="s${i}out" style="display:none"></div>
+  </div>`);
+}
+
+function calc(){
+  const sale=num("salePrice"), bal=num("mortBal");
+  const agentFee=sale*num("agentPct")/100;
+  const sellCosts=agentFee+num("erc")+num("solSale")+num("epc");
+  const equity=sale-bal-sellCosts;
+
+  document.getElementById("sellOut").innerHTML=sale?`
+    <div class="kv"><span class="k">Agent fee</span><span class="v neg">−${fmt(agentFee)}</span></div>
+    <div class="kv"><span class="k">Other selling costs</span><span class="v neg">−${fmt(sellCosts-agentFee)}</span></div>
+    <div class="kv"><span class="k">Mortgage repaid</span><span class="v neg">−${fmt(bal)}</span></div>
+    <div class="kv total"><span class="k">Equity released</span><span class="v ${equity<0?'neg':''}">${fmt(equity)}</span></div>`:"";
+
+  const price=num("newPrice");
+  const tax=ltt(price);
+  const buyCosts=tax+num("solBuy")+num("survey")+num("prodFee")+num("otherBuy");
+  const deposit=Math.max(0,equity)+num("savings")-buyCosts;
+  const loan=Math.max(0,price-Math.max(0,deposit));
+  const lvt=price?loan/price*100:0;
+
+  document.getElementById("buyOut").innerHTML=price?`
+    <div class="kv"><span class="k">LTT (stamp duty)</span><span class="v neg">−${fmt(tax)}</span></div>
+    <div class="kv"><span class="k">Other buying costs</span><span class="v neg">−${fmt(buyCosts-tax)}</span></div>
+    <div class="kv"><span class="k">Deposit after all costs</span><span class="v ${deposit<0?'neg':'pos'}">${fmt(deposit)}</span></div>
+    <div class="kv total"><span class="k">Mortgage needed</span><span class="v">${fmt(loan)}</span></div>
+    <div class="kv"><span class="k">Loan-to-value</span><span class="v ${lvt>90?'amber':''}">${price?lvt.toFixed(1)+"%":"—"}</span></div>
+    ${deposit<0?'<div class="warnbox">Your costs exceed your equity + savings — you\u2019d need more cash to complete.</div>':''}
+    ${lvt>95&&price?'<div class="warnbox">LTV over 95% — most lenders won\u2019t offer this.</div>':''}`:"";
+
+  const m=pmt(loan,num("rate"),num("term"));
+  document.getElementById("bigMonthly").textContent=m?fmt(m):"—";
+  document.getElementById("bigSub").textContent=m?`${fmt(loan)} over ${num("term")} yrs @ ${num("rate")}%`:"Fill in the sections below";
+  document.getElementById("mortOut").innerHTML=m?`
+    <div class="kv"><span class="k">Monthly repayment</span><span class="v">${fmt(m)}</span></div>
+    <div class="kv"><span class="k">Total repaid over term</span><span class="v">${fmt(m*num("term")*12)}</span></div>
+    <div class="kv"><span class="k">Total interest</span><span class="v neg">${fmt(m*num("term")*12-loan)}</span></div>`:"";
+
+  // comparison
+  let best=-1,bestCost=Infinity,results=[];
+  for(let i=1;i<=3;i++){
+    const r=num("s"+i+"rate"),f=num("s"+i+"fee"),y=num("s"+i+"yrs");
+    const el=document.getElementById("s"+i+"out");
+    document.getElementById("scen"+i).classList.remove("best");
+    if(r&&y&&loan){
+      const mp=pmt(loan,r,num("term")||25);
+      const total=mp*y*12+f;
+      results.push({i,mp,total});
+      if(total<bestCost){bestCost=total;best=i;}
+      el.style.display="flex";
+      el.innerHTML=`<span>Monthly <b>${fmt(mp)}</b></span><span>${y}-yr cost <b>${fmt(total)}</b></span>`;
+    } else el.style.display="none";
+  }
+  if(best>0&&results.length>1)document.getElementById("scen"+best).classList.add("best");
+}
+
+// persistence + wiring
+[...fields,...scenFields].forEach(id=>{
+  const el=document.getElementById(id);
+  el.value=localStorage.getItem(K+id)??"";
+  el.addEventListener("input",()=>{localStorage.setItem(K+id,el.value);calc();});
+});
+document.querySelectorAll(".card h2").forEach(h=>h.addEventListener("click",()=>h.parentElement.classList.toggle("closed")));
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  if(!confirm("Clear all saved inputs?"))return;
+  [...fields,...scenFields].forEach(id=>{localStorage.removeItem(K+id);document.getElementById(id).value="";});
+  calc();
+});
+calc();
+if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
